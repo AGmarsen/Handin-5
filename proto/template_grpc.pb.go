@@ -14,158 +14,122 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// RpcClient is the client API for Rpc service.
+// AuctionClient is the client API for Auction service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type RpcClient interface {
+type AuctionClient interface {
 	Bid(ctx context.Context, in *Bid, opts ...grpc.CallOption) (*Ack, error)
 	GetBiddingStatus(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Result, error)
-	HeartBeat(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
 }
 
-type rpcClient struct {
+type auctionClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewRpcClient(cc grpc.ClientConnInterface) RpcClient {
-	return &rpcClient{cc}
+func NewAuctionClient(cc grpc.ClientConnInterface) AuctionClient {
+	return &auctionClient{cc}
 }
 
-func (c *rpcClient) Bid(ctx context.Context, in *Bid, opts ...grpc.CallOption) (*Ack, error) {
+func (c *auctionClient) Bid(ctx context.Context, in *Bid, opts ...grpc.CallOption) (*Ack, error) {
 	out := new(Ack)
-	err := c.cc.Invoke(ctx, "/peer.Rpc/bid", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/peer.Auction/bid", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *rpcClient) GetBiddingStatus(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Result, error) {
+func (c *auctionClient) GetBiddingStatus(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Result, error) {
 	out := new(Result)
-	err := c.cc.Invoke(ctx, "/peer.Rpc/getBiddingStatus", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/peer.Auction/getBiddingStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *rpcClient) HeartBeat(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/peer.Rpc/heartBeat", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// RpcServer is the server API for Rpc service.
-// All implementations must embed UnimplementedRpcServer
+// AuctionServer is the server API for Auction service.
+// All implementations must embed UnimplementedAuctionServer
 // for forward compatibility
-type RpcServer interface {
+type AuctionServer interface {
 	Bid(context.Context, *Bid) (*Ack, error)
 	GetBiddingStatus(context.Context, *Empty) (*Result, error)
-	HeartBeat(context.Context, *Empty) (*Empty, error)
-	mustEmbedUnimplementedRpcServer()
+	mustEmbedUnimplementedAuctionServer()
 }
 
-// UnimplementedRpcServer must be embedded to have forward compatible implementations.
-type UnimplementedRpcServer struct {
+// UnimplementedAuctionServer must be embedded to have forward compatible implementations.
+type UnimplementedAuctionServer struct {
 }
 
-func (UnimplementedRpcServer) Bid(context.Context, *Bid) (*Ack, error) {
+func (UnimplementedAuctionServer) Bid(context.Context, *Bid) (*Ack, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Bid not implemented")
 }
-func (UnimplementedRpcServer) GetBiddingStatus(context.Context, *Empty) (*Result, error) {
+func (UnimplementedAuctionServer) GetBiddingStatus(context.Context, *Empty) (*Result, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBiddingStatus not implemented")
 }
-func (UnimplementedRpcServer) HeartBeat(context.Context, *Empty) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method HeartBeat not implemented")
-}
-func (UnimplementedRpcServer) mustEmbedUnimplementedRpcServer() {}
+func (UnimplementedAuctionServer) mustEmbedUnimplementedAuctionServer() {}
 
-// UnsafeRpcServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to RpcServer will
+// UnsafeAuctionServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to AuctionServer will
 // result in compilation errors.
-type UnsafeRpcServer interface {
-	mustEmbedUnimplementedRpcServer()
+type UnsafeAuctionServer interface {
+	mustEmbedUnimplementedAuctionServer()
 }
 
-func RegisterRpcServer(s grpc.ServiceRegistrar, srv RpcServer) {
-	s.RegisterService(&Rpc_ServiceDesc, srv)
+func RegisterAuctionServer(s grpc.ServiceRegistrar, srv AuctionServer) {
+	s.RegisterService(&Auction_ServiceDesc, srv)
 }
 
-func _Rpc_Bid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Auction_Bid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Bid)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RpcServer).Bid(ctx, in)
+		return srv.(AuctionServer).Bid(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peer.Rpc/bid",
+		FullMethod: "/peer.Auction/bid",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RpcServer).Bid(ctx, req.(*Bid))
+		return srv.(AuctionServer).Bid(ctx, req.(*Bid))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Rpc_GetBiddingStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Auction_GetBiddingStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RpcServer).GetBiddingStatus(ctx, in)
+		return srv.(AuctionServer).GetBiddingStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/peer.Rpc/getBiddingStatus",
+		FullMethod: "/peer.Auction/getBiddingStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RpcServer).GetBiddingStatus(ctx, req.(*Empty))
+		return srv.(AuctionServer).GetBiddingStatus(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Rpc_HeartBeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RpcServer).HeartBeat(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/peer.Rpc/heartBeat",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RpcServer).HeartBeat(ctx, req.(*Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// Rpc_ServiceDesc is the grpc.ServiceDesc for Rpc service.
+// Auction_ServiceDesc is the grpc.ServiceDesc for Auction service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Rpc_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "peer.Rpc",
-	HandlerType: (*RpcServer)(nil),
+var Auction_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "peer.Auction",
+	HandlerType: (*AuctionServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "bid",
-			Handler:    _Rpc_Bid_Handler,
+			Handler:    _Auction_Bid_Handler,
 		},
 		{
 			MethodName: "getBiddingStatus",
-			Handler:    _Rpc_GetBiddingStatus_Handler,
-		},
-		{
-			MethodName: "heartBeat",
-			Handler:    _Rpc_HeartBeat_Handler,
+			Handler:    _Auction_GetBiddingStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
