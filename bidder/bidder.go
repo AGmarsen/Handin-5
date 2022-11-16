@@ -2,29 +2,24 @@ package main
 
 import (
 	"bufio"
+	"context"
+	"fmt"
 	"log"
 	"os"
-	"fmt"
 	"strconv"
-	"time"
+	"strings"
 
 	auc "github.com/AGmarsen/Handin-5/proto"
 	"google.golang.org/grpc"
 )
 
-type peer struct {
-	id       int32
-	nodes  map[int32]auc.AuctionClient
-}
+var name string
+var nodes map[int32]auc.AuctionClient
 
 func main() {
-	arg1, _ := strconv.ParseInt(os.Args[1], 10, 32)
-	ownPort := int32(arg1) + 5010
 
-	p := &peer{
-		id:       ownPort,
-		nodes:  make(map[int32]auc.AuctionClient),
-	}
+	name = os.Args[1]
+	nodes = make(map[int32]auc.AuctionClient)
 
 	//dial nodes
 	for i := 0; i < 3; i++ {
@@ -37,13 +32,34 @@ func main() {
 		}
 		defer conn.Close()
 		c := auc.NewAuctionClient(conn)
-		p.nodes[port] = c
+		nodes[port] = c
 	}
 
+	fmt.Println("Wlcome to the auction!")
+	fmt.Println("Type \"bid {amount here}\" or result to place a bid.")
+	fmt.Println("Type \"status\" to see the current state of the auction")
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		
-		time.Sleep(3000 * time.Millisecond)
+		readInput(scanner.Text())
+	}
+}
+
+func readInput(s string) {
+	if strings.HasPrefix(s, "bid") {
+		amount, err := strconv.ParseInt(strings.Split(s, " ")[1], 10, 32)
+		if err != nil {
+			log.Printf("%v", err)
+		} else {
+			bid(int(amount))
+		}
+	} else if strings.HasPrefix(s, "result") {
+
+	}
+}
+
+func bid(amount int) {
+	for _, node := range nodes {
+		node.Bid(context.Background(), &auc.Bid{Name: name, Amount: int32(amount)})
 	}
 }

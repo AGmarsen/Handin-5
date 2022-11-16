@@ -10,7 +10,7 @@ service Auction {
 }
 
 message Bid {
-    int32 id = 1;
+    string name = 1;
     int32 amount = 2;
 }
 
@@ -24,4 +24,5 @@ message Result {
 }
 
 message Empty {
+    
 } 
