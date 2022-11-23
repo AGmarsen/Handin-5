@@ -18,8 +18,12 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuctionClient interface {
+	// client to node
 	Bid(ctx context.Context, in *Bid, opts ...grpc.CallOption) (*Ack, error)
 	GetBiddingStatus(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Result, error)
+	// node to node
+	Syncronize(ctx context.Context, in *Sync, opts ...grpc.CallOption) (*Empty, error)
+	HeartBeat(ctx context.Context, in *Beat, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type auctionClient struct {
@@ -48,12 +52,34 @@ func (c *auctionClient) GetBiddingStatus(ctx context.Context, in *Empty, opts ..
 	return out, nil
 }
 
+func (c *auctionClient) Syncronize(ctx context.Context, in *Sync, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/peer.Auction/syncronize", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auctionClient) HeartBeat(ctx context.Context, in *Beat, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/peer.Auction/HeartBeat", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuctionServer is the server API for Auction service.
 // All implementations must embed UnimplementedAuctionServer
 // for forward compatibility
 type AuctionServer interface {
+	// client to node
 	Bid(context.Context, *Bid) (*Ack, error)
 	GetBiddingStatus(context.Context, *Empty) (*Result, error)
+	// node to node
+	Syncronize(context.Context, *Sync) (*Empty, error)
+	HeartBeat(context.Context, *Beat) (*Empty, error)
 	mustEmbedUnimplementedAuctionServer()
 }
 
@@ -66,6 +92,12 @@ func (UnimplementedAuctionServer) Bid(context.Context, *Bid) (*Ack, error) {
 }
 func (UnimplementedAuctionServer) GetBiddingStatus(context.Context, *Empty) (*Result, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBiddingStatus not implemented")
+}
+func (UnimplementedAuctionServer) Syncronize(context.Context, *Sync) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Syncronize not implemented")
+}
+func (UnimplementedAuctionServer) HeartBeat(context.Context, *Beat) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HeartBeat not implemented")
 }
 func (UnimplementedAuctionServer) mustEmbedUnimplementedAuctionServer() {}
 
@@ -116,6 +148,42 @@ func _Auction_GetBiddingStatus_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Auction_Syncronize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Sync)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServer).Syncronize(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/peer.Auction/syncronize",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServer).Syncronize(ctx, req.(*Sync))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auction_HeartBeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Beat)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuctionServer).HeartBeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/peer.Auction/HeartBeat",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuctionServer).HeartBeat(ctx, req.(*Beat))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Auction_ServiceDesc is the grpc.ServiceDesc for Auction service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -130,6 +198,14 @@ var Auction_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getBiddingStatus",
 			Handler:    _Auction_GetBiddingStatus_Handler,
+		},
+		{
+			MethodName: "syncronize",
+			Handler:    _Auction_Syncronize_Handler,
+		},
+		{
+			MethodName: "HeartBeat",
+			Handler:    _Auction_HeartBeat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
