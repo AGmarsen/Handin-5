@@ -117,7 +117,7 @@ func waitForResponse() { //assume all messages arrive whitin the given time. If 
 			result <- resp
 			return
 		case <-kill:
-			log.Println("Failed to receive a response from prime node. Trying to redirect...")
+			log.Println("Failed to receive a response from leader node. Trying to redirect...")
 			port++
 			var conn *grpc.ClientConn
 			conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure(), grpc.WithBlock()) //dial the next node

@@ -26,7 +26,7 @@ type Node struct {
 	started       bool
 	nodes         map[int32]auc.AuctionClient
 	inbox         map[int32]bool
-	primeNode     int32
+	leaderNode    int32
 	lastBeat      time.Time
 
 	mutex sync.Mutex
@@ -43,7 +43,7 @@ func main() {
 		started:       false,
 		nodes:         make(map[int32]auc.AuctionClient),
 		inbox:         make(map[int32]bool),
-		primeNode:     5000,
+		leaderNode:    5000,
 	}
 
 	// Create listener tcp on given port or default port 5400
@@ -178,7 +178,7 @@ func (n *Node) CountDown() {
 	for {
 		if n.started {
 			break
-		} else if n.IsSupreme() { //only the prime node gives a heat beat to all other nodes
+		} else if n.IsLeader() { //only the leader node gives a heat beat to all other nodes
 			time.Sleep(time.Second)
 			n.GiveHeartBeat()
 		}
@@ -196,32 +196,32 @@ func (n *Node) CountDown() {
 }
 
 func (n *Node) DetectCrash() {
-	for !n.IsSupreme() {
+	for !n.IsLeader() {
 		if time.Now().After(n.lastBeat.Add(3000 * time.Millisecond)) { //if no heartbeat for x seconds
-			log.Printf("Port %d seems dead.", n.primeNode)
-			delete(n.nodes, n.primeNode)
-			delete(n.inbox, n.primeNode)
-			n.primeNode = n.NewLeader()
-			log.Printf("New leader selected: %d", n.primeNode)
-			n.started = n.IsSupreme() && (n.countDown < 60 || n.highestBid > 0) //starts countDown and heatbeat if Supreme and auction started
+			log.Printf("Port %d seems dead.", n.leaderNode)
+			delete(n.nodes, n.leaderNode)
+			delete(n.inbox, n.leaderNode)
+			n.leaderNode = n.NewLeader()
+			log.Printf("New leader selected: %d", n.leaderNode)
+			n.started = n.IsLeader() && (n.countDown < 60 || n.highestBid > 0) //starts countDown and heatbeat if Leader and auction started
 			time.Sleep(time.Second)
 			n.lastBeat = time.Now() //give the next node some time to give a beat
 		}
 	}
 }
 
-func (n *Node) IsSupreme() bool { //am i the leader
-	return n.primeNode == n.ownPort
+func (n *Node) IsLeader() bool { //am i the leader
+	return n.leaderNode == n.ownPort
 }
 
 func (n *Node) NewLeader() int32 {
-	prime := n.ownPort
+	leader := n.ownPort
 	for id := range n.nodes { //find smallest id. That is the new leader
-		if prime > id {
-			prime = id
+		if leader > id {
+			leader = id
 		}
 	}
-	return prime
+	return leader
 }
 
 func (n *Node) waitForResponse() {
