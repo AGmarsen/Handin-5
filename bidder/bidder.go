@@ -54,7 +54,7 @@ func main() {
 }
 
 func readInput(s string) {
-	if strings.HasPrefix(s, BID) {
+	if strings.HasPrefix(s, BID + " ") {
 		amount, err := strconv.ParseInt(strings.Split(s, " ")[1], 10, 32)
 		if err != nil {
 			log.Printf("Failed to convert amount to an integer. Try with something else.")
