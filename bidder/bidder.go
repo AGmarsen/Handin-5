@@ -24,6 +24,7 @@ var inbox chan string
 var kill chan bool
 var result chan string
 var mutex sync.Mutex
+var port int32
 
 func main() {
 	name = os.Args[1]
@@ -32,7 +33,7 @@ func main() {
 	result = make(chan string)
 
 	//dial nodes
-	port := int32(5000)
+	port = int32(5000)
 	var conn *grpc.ClientConn
 	log.Printf("Trying to dial: %v\n", port)
 	conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure(), grpc.WithBlock())
@@ -80,9 +81,6 @@ func bid(amount int32) {
 			log.Println(res)
 			return
 		}
-		if i == 0 {
-			log.Println("Something went wrong. Trying again.")
-		}
 	}
 	log.Println("Failed to receive a response from any nodes.")
 
@@ -103,9 +101,6 @@ func bidStatus() {
 			log.Println(res)
 			return
 		}
-		if i == 0 {
-			log.Println("Something went wrong. Trying again.")
-		}
 	}
 	log.Println("Failed to receive a response from any nodes.")
 }
@@ -115,7 +110,7 @@ func waitForResponse() { //assume all messages arrive whitin the given time. If 
 	end := time.Now().Add(3000 * time.Millisecond)
 
 	for {
-		select {
+		select { //waits for a response in the inbox or a kill order
 		case resp := <-inbox:
 			mutex.Lock()
 			defer mutex.Unlock()
@@ -123,7 +118,7 @@ func waitForResponse() { //assume all messages arrive whitin the given time. If 
 			return
 		case <-kill:
 			log.Println("Failed to receive a response from prime node. Trying to redirect...")
-			port := int32(5001)
+			port++
 			var conn *grpc.ClientConn
 			conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure(), grpc.WithBlock()) //dial the next node
 			if err != nil {
@@ -133,7 +128,7 @@ func waitForResponse() { //assume all messages arrive whitin the given time. If 
 			log.Println("Redirect successful.")
 			result <- ""
 			return
-		default:
+		default: //if too much time passes. Send kill order 66
 			if time.Now().After(end) {
 				kill <- true
 			}

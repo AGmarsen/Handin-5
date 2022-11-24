@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math"
 	"net"
 	"os"
 	"strconv"
@@ -75,7 +74,7 @@ func main() {
 		}
 
 		var conn *grpc.ClientConn
-		fmt.Printf("Trying to dial: %v\n", port)
+		log.Printf("Trying to dial: %v\n", port)
 		conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure(), grpc.WithBlock())
 		if err != nil {
 			log.Fatalf("Could not connect: %s", err)
@@ -127,9 +126,9 @@ func (n *Node) UpdateBittingStatus() {
 	} else if n.countDown == 0 {
 		n.auctionStatus = fmt.Sprintf("Auction has ended. %s had the highest bid of %d", n.highestBidder, n.highestBid)
 	} else if n.highestBid == 0 {
-		n.auctionStatus = fmt.Sprintf("Action is open. No one has bidded yet. Ends in %d seconds", n.countDown)
+		n.auctionStatus = fmt.Sprintf("Auction is open. No one has bidded yet. Ends in %d seconds", n.countDown)
 	} else {
-		n.auctionStatus = fmt.Sprintf("Action is open. %s is in the lead with a bid of %d. Ends in %d seconds", n.highestBidder, n.highestBid, n.countDown)
+		n.auctionStatus = fmt.Sprintf("Auction is open. %s is in the lead with a bid of %d. Ends in %d seconds", n.highestBidder, n.highestBid, n.countDown)
 	}
 }
 
@@ -161,35 +160,39 @@ func (n *Node) HeartBeat(ctx context.Context, beat *auc.Beat) (*auc.Empty, error
 		go n.DetectCrash() //start looking for craches after first heart beat
 	}
 	n.countDown = beat.CountDown
-	fmt.Printf("%d", beat.CountDown)
 	n.lastBeat = time.Now()
 	return &auc.Empty{}, nil
 }
 
 func (n *Node) GiveHeartBeat() {
-	go func() {
-		for _, node := range n.nodes {
-			nd := node
+	for _, node := range n.nodes {
+		nd := node
+		go func() {
 			nd.HeartBeat(context.Background(), &auc.Beat{Id: n.ownPort, CountDown: n.countDown})
-		}
-	}()
+		}()
+	}
+
 }
 
 func (n *Node) CountDown() {
 	for {
 		if n.started {
 			break
-		} else if n.IsSupreme() {
+		} else if n.IsSupreme() { //only the prime node gives a heat beat to all other nodes
 			time.Sleep(time.Second)
 			n.GiveHeartBeat()
 		}
 	}
-	for n.countDown > 0 {
+	for n.countDown > 0 { //only the leader goes here when the auction starts or when a backup node takes over
 		time.Sleep(time.Second)
 		n.countDown -= 1
 		n.GiveHeartBeat()
 	}
 	log.Println("Auction closed.")
+	for {
+		time.Sleep(time.Second)
+		n.GiveHeartBeat()
+	}
 }
 
 func (n *Node) DetectCrash() {
@@ -197,9 +200,12 @@ func (n *Node) DetectCrash() {
 		if time.Now().After(n.lastBeat.Add(3000 * time.Millisecond)) { //if no heartbeat for x seconds
 			log.Printf("Port %d seems dead.", n.primeNode)
 			delete(n.nodes, n.primeNode)
+			delete(n.inbox, n.primeNode)
 			n.primeNode = n.NewLeader()
+			log.Printf("New leader selected: %d", n.primeNode)
 			n.started = n.IsSupreme() && (n.countDown < 60 || n.highestBid > 0) //starts countDown and heatbeat if Supreme and auction started
-			break
+			time.Sleep(time.Second)
+			n.lastBeat = time.Now() //give the next node some time to give a beat
 		}
 	}
 }
@@ -209,7 +215,7 @@ func (n *Node) IsSupreme() bool { //am i the leader
 }
 
 func (n *Node) NewLeader() int32 {
-	prime := int32(math.MaxInt32)
+	prime := n.ownPort
 	for id := range n.nodes { //find smallest id. That is the new leader
 		if prime > id {
 			prime = id
@@ -220,15 +226,17 @@ func (n *Node) NewLeader() int32 {
 
 func (n *Node) waitForResponse() {
 	time.Sleep(1000 * time.Millisecond)
+	var killList []int32
 	for id, alive := range n.inbox {
 		if !alive {
 			log.Printf("Port %d seems dead.", id)
-			delete(n.nodes, id)
-			delete(n.inbox, id)
+			killList = append(killList, id)
 		} else {
 			n.inbox[id] = false
 		}
 	}
+	for _, id := range killList {
+		delete(n.nodes, id)
+		delete(n.inbox, id)
+	}
 }
-
-//TODO: when second server crash we crash
