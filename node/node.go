@@ -126,7 +126,7 @@ func (n *Node) UpdateBittingStatus() {
 	} else if n.countDown == 0 {
 		n.auctionStatus = fmt.Sprintf("Auction has ended. %s had the highest bid of %d", n.highestBidder, n.highestBid)
 	} else if n.highestBid == 0 {
-		n.auctionStatus = fmt.Sprintf("Auction is open. No one has bidded yet. Ends in %d seconds", n.countDown)
+		n.auctionStatus = fmt.Sprintf("Auction is open. No one has bid yet. Ends in %d seconds", n.countDown)
 	} else {
 		n.auctionStatus = fmt.Sprintf("Auction is open. %s is in the lead with a bid of %d. Ends in %d seconds", n.highestBidder, n.highestBid, n.countDown)
 	}
@@ -225,9 +225,9 @@ func (n *Node) NewLeader() int32 {
 }
 
 func (n *Node) waitForResponse() {
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond) //give back-ups a second to respond
 	var killList []int32
-	for id, alive := range n.inbox {
+	for id, alive := range n.inbox { //check if they responded
 		if !alive {
 			log.Printf("Port %d seems dead.", id)
 			killList = append(killList, id)
